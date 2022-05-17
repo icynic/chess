@@ -11,6 +11,16 @@ struct Position {
 	int c = 0;
 	int r = 0;
 
+	Position move(int pr, int pc) {
+		if (r + pr <= 8 && r + pr >= 0 && c + pc <= 8 && c + pc >= 0) {
+			return Position(r + pr, c + pc);
+		}
+		else {
+			return Position();
+		}
+
+	}
+
 	int move_r(int pr) {
 		if (r + pr <= 8 && r + pr >= 0)
 			return r + pr;
@@ -22,6 +32,9 @@ struct Position {
 		return c;
 	}
 	Position() = default;
+	Position(int pr, int pc) {
+		r = pr; c = pc;
+	}
 };
 
 
@@ -54,7 +67,6 @@ public:
 		switch (ptype) {
 		case 'p':
 			name = " Pawn ";
-
 			break;
 		case 'n':
 			name = "Knight";
@@ -74,9 +86,11 @@ public:
 		}
 	}
 	void clear() {
-		Position tpst = pst;
-		Pieces;
-		pst = tpst;
+		name = "      ";
+		type = ' ';
+		moved = false;
+		side = " ";
+		side_set = false;
 	}
 	void swap_pst(Pieces& apiece) {
 		Position temp = pst;
@@ -198,35 +212,65 @@ public:
 		if (self.type == ' ')
 			cerr << "error: search blank" << endl;
 
-		//string const p = " Pawn ", n = "Knight", b = "Bishop", r = " Rook ", q = " Queen", k = " King ";
 		vector<Position> pst_possible;
 		Position pst1;
+
+		int rlist_n[8] = { 2,2,-2,-2,-1,1,-1,1 };
+		int clist_n[8] = { -1,1,-1,1,-2,-2,2,2 };
 		switch (self.type) {
 		case 'p':
 
 			if (self.side == "down") {
-				pst1.c = self.pst.c;
-				pst1.r = self.pst.move_r(1);
+
+				pst1 = self.pst.move(1, 0);
 				pst_possible.push_back(pst1);
 				if (self.moved == false) {
-					pst1.r = self.pst.move_r(2);
+
+					pst1 = self.pst.move(2, 0);
 					pst_possible.push_back(pst1);
 				}
 			}
 			else if (self.side == "up") {
-				pst1.c = self.pst.c;
-				pst1.r = self.pst.move_r(-1);
+
+				pst1 = self.pst.move(-1, 0);
 				pst_possible.push_back(pst1);
 				if (self.moved == false) {
-					pst1.r = self.pst.move_r(-2);
+
+					pst1 = self.pst.move(-2, 0);
 					pst_possible.push_back(pst1);
 				}
 			}
 			break;
 		case 'n':
 
+			for (int i = 0; i < 8; i++) {
+				pst1 = self.pst.move(rlist_n[i], clist_n[i]);
+				if (pst1.c != 0 && pst1.r != 0) {
+					pst_possible.push_back(pst1);
+				}
+			}
+
 			break;
 		case 'b':
+			for (int i = 1; i < 8; i++) {
+				pst1 = self.pst.move(i, i);
+				if (pst1.c != 0 && pst1.r != 0) {
+					pst_possible.push_back(pst1);
+				}
+				pst1 = self.pst.move(-i, -i);
+				if (pst1.c != 0 && pst1.r != 0) {
+					pst_possible.push_back(pst1);
+				}
+				pst1 = self.pst.move(i, -i);
+				if (pst1.c != 0 && pst1.r != 0) {
+					pst_possible.push_back(pst1);
+				}
+				pst1 = self.pst.move(-i, i);
+				if (pst1.c != 0 && pst1.r != 0) {
+					pst_possible.push_back(pst1);
+				}
+			}
+
 			break;
 		case 'r':
 
@@ -240,21 +284,151 @@ public:
 		}
 
 		Pieces apiece;
+		//delete blocked move
 		for (auto it = pst_possible.begin(); it != pst_possible.end(); it++) {
+			apiece = read(*it);
+			//if (true) {//(apiece.side != " ")
+				//vertival and horizontal				
+			if (apiece.pst.c > self.pst.c && apiece.pst.r == self.pst.r) {
+				for (int i = 1; i < apiece.pst.c - self.pst.c; i++) {
+					if (read(self.pst.move(0, i)).type != ' ') {
+						if (pst_possible.size() != 1) {
+							it = pst_possible.erase(it) - 1;
+						}
+						else {
+							it = pst_possible.erase(it);
+						}
+						break;
+					}
+				}
+			}
+			else if (apiece.pst.c < self.pst.c&& apiece.pst.r == self.pst.r) {
+				for (int i = -1; i > apiece.pst.c - self.pst.c; i--) {
+					if (read(self.pst.move(0, i)).type != ' ') {
+						if (pst_possible.size() != 1) {
+							it = pst_possible.erase(it) - 1;
+						}
+						else {
+							it = pst_possible.erase(it);
+						}
+						break;
+					}
+				}
+			}
+			else if (apiece.pst.r > self.pst.r && apiece.pst.c == self.pst.c) {
+				for (int i = 1; i < apiece.pst.r - self.pst.r; i++) {
+					if (read(self.pst.move(i, 0)).type != ' ') {
+						if (pst_possible.size() != 1) {
+							it = pst_possible.erase(it) - 1;
+						}
+						else {
+							it = pst_possible.erase(it);
+						}
+						break;
+					}
+				}
+			}
+			else if (apiece.pst.r < self.pst.r&& apiece.pst.c == self.pst.c) {
+				for (int i = -1; i > apiece.pst.r - self.pst.r; i--) {
+					if (read(self.pst.move(i, 0)).type != ' ') {
+						if (pst_possible.size() != 1) {
+							it = pst_possible.erase(it) - 1;
+						}
+						else {
+							it = pst_possible.erase(it);
+						}
+						break;
+					}
+				}
+			}
+
+			//diagonal
+			else if (abs(apiece.pst.r - self.pst.r) == abs(apiece.pst.c - self.pst.c)) {
+				if (apiece.pst.c > self.pst.c && apiece.pst.r > self.pst.r) {
+					for (int i = 1; i < apiece.pst.c - self.pst.c; i++) {
+						if (read(self.pst.move(i, i)).type != ' ') {
+							if (pst_possible.size() != 1) {
+								it = pst_possible.erase(it) - 1;
+							}
+							else {
+								it = pst_possible.erase(it);
+							}
+							break;
+						}
+					}
+				}
+				else if (apiece.pst.c < self.pst.c && apiece.pst.r < self.pst.r) {
+					for (int i = -1; i > apiece.pst.c - self.pst.c; i--) {
+						if (read(self.pst.move(i, i)).type != ' ') {
+							if (pst_possible.size() != 1) {
+								it = pst_possible.erase(it) - 1;
+							}
+							else {
+								it = pst_possible.erase(it);
+							}
+							break;
+						}
+					}
+				}
+				else if (apiece.pst.r > self.pst.r && apiece.pst.c < self.pst.c) {
+					for (int i = 1; i < apiece.pst.r - self.pst.r; i++) {
+						if (read(self.pst.move(i, -i)).type != ' ') {
+							if (pst_possible.size() != 1) {
+								it = pst_possible.erase(it) - 1;
+							}
+							else {
+								it = pst_possible.erase(it);
+							}
+							break;
+						}
+					}
+				}
+				else if (apiece.pst.r < self.pst.r && apiece.pst.c > self.pst.c) {
+					for (int i = -1; i > apiece.pst.r - self.pst.r; i--) {
+						if (read(self.pst.move(i, -i)).type != ' ') {
+							if (pst_possible.size() != 1) {
+								it = pst_possible.erase(it) - 1;
+							}
+							else {
+								it = pst_possible.erase(it);
+							}
+							//!!!让迭代器-1可能会出错
+							//! 
+							//! 
+							break;
+						}
+					}
+				}
+			}
+
+
+
+		}
+
+		for (auto it = pst_possible.begin(); it != pst_possible.end();) {
 			apiece = read(*it);
 			//delete ally
 			if (apiece.side == self.side) {
-				pst_possible.erase(it);
-				continue;
+				it = pst_possible.erase(it);
+
 			}
+			/*
 			//check examine(enemy pieces)
 			else if (second_times == false) {
 				for (int i = 1; i <= 8; i++)
 					for (int j = 1; j <= 8; j++)
 						if (vboard[i][j].side != self.side && vboard[i][j].side != " ")
 							for (Position epst : move_search(vboard[i][j].pst, true))
-								if (read(epst).name == " king ")
-									pst_possible.erase(it);
+								if (read(epst).name == " king " && read(epst).side == self.side) {
+									it = pst_possible.erase(it) - 1;
+									break;
+								}
+				it++;
+			}
+			*/
+
+			else {
+				it++;
 			}
 		}
 		if (second_times == false) {
@@ -271,7 +445,7 @@ public:
 
 	void input2(vector<Position> pst_possible, Position pst_self) {
 		for (Position i : pst_possible) {
-			cout << '*' << endl;
+			cout << "you can move to: " << endl;
 			cout << i.r << " row, " << i.c << " col" << endl;
 		}
 
@@ -294,10 +468,17 @@ public:
 				Pieces& self = read(pst_self);
 				self.moved = true;
 				Pieces& target = read(pst_destination);
+				
+
+				//vboard[target.pst.r][target.pst.c]=vboard[self.pst.r][self.pst.c];
+				vboard_swap(self.pst,target.pst);
 				self.swap_pst(target);
-				target.clear();
+				self.clear();
 				refresh();
 				print();
+
+				
+				
 				return;
 			}
 		}
@@ -307,6 +488,12 @@ public:
 	}
 
 
+	void vboard_swap(Position p1, Position p2) {
+		Pieces temp;
+		temp = vboard[p1.r][p1.c];
+		vboard[p1.r][p1.c] = vboard[p2.r][p2.c];
+		vboard[p2.r][p2.c] = temp;
+	}
 
 
 	//synchronize vboard and true board
