@@ -179,6 +179,8 @@ public:
 				vboard[i][j].set(ipst, itype[i - 1][j - 1]);
 			}
 		}
+		//start recording the total time of the game
+		t3.start();
 	}
 
 	void print() {
@@ -194,7 +196,7 @@ public:
 		}
 	}
 
-	Timer t1, t2;
+	Timer t1, t2,t3;
 	map < string, Timer > side_time = { {"upper case", t1}, { "lower case",t2 } };
 
 	//get a piece to move
@@ -589,6 +591,8 @@ public:
 									cout << "GAME OVER\n" << target.side << " win" << endl;
 									cout << target.side << " used " << side_time[target.side].get() << " seconds" << endl;
 									cout << target.enemy_side() << " used " << side_time[target.enemy_side()].get() << " seconds" << endl;
+									t3.pause();
+									cout << "The total time of game is " << t3.get() << " seconds";
 									exit(0);
 								}
 								return;
