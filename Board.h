@@ -6,11 +6,33 @@
 using namespace std;
 
 
+class Timer {
+	time_t start_time = 0;
+	time_t sum = 0;
+	bool is_started = false;
+public:
+	//start the timer
+	void start() {
+		start_time = time(0);
+	}
+	//pause the timer and record the time
+	void pause() {
+		sum += difftime(time(0),start_time);
+	}
+	//get total time
+	long get() {
+		return sum;
+	}
+	Timer() = default;
+};
+
+
 
 struct Position {
 	int c = 0;
 	int r = 0;
 
+	//only return legal move
 	Position move(int pr, int pc) {
 		if (r + pr <= 8 && r + pr >= 0 && c + pc <= 8 && c + pc >= 0)
 			return Position(r + pr, c + pc);
@@ -24,10 +46,10 @@ struct Position {
 			return true;
 	}
 
-	Position() = default;
 	Position(int pr, int pc) {
 		r = pr; c = pc;
 	}
+	Position() = default;
 };
 
 
@@ -42,38 +64,40 @@ public:
 	Position pst;
 	bool side_set = false;
 
+	//set pieces' attributes
 	void set(Position ppst, char ptype) {
 		pst = ppst;
-		//pst.c = ppst.c; pst.r = ppst.r;
 		type = ptype;
 
-
+		//set side and name automately
 		if (side_set == false) {
 			side_set = true;
 			if (ppst.r >= 7)
-				side = "up";
+				side = "upper case";
 			else if (ppst.r <= 2)
-				side = "down";
+				side = "lower case";
 		}
 		map<char, string> name1 = { {'p'," PAWN "},{'n',"KNIGHT"},{'b',"BISHOP"},{'r'," ROOK "},{'q'," QUEEN"},{'k'," KING "} };
-		if (side == "up")
+		if (side == "upper case")
 			name = name1[ptype];
 		map<char, string> name2 = { {'p'," pawn "},{'n',"knight"},{'b',"bishop"},{'r'," rook "},{'q'," queen"},{'k'," king "} };
-		if (side == "down")
+		if (side == "lower case")
 			name = name2[ptype];
 	}
+	//clear attributes(without position)
 	void clear() {
 		name = "      ";
 		type = ' ';
 		moved = false;
 		side = " ";
-		//side_set = false;
 	}
+	//swap positions of two pieces
 	void swap_pst(Pieces& apiece) {
 		Position temp = pst;
 		pst = apiece.pst;
 		apiece.pst = temp;
 	}
+	//add and remove asterisk
 	void asterisk(string option) {
 		char last = ' ';
 		if (option == "add") {
@@ -84,11 +108,12 @@ public:
 			name[5] = last;
 		}
 	}
+	//return enemy's side
 	string enemy_side() {
-		if (side == "up")
-			return "down";
-		else if (side == "down")
-			return "up";
+		if (side == "upper case")
+			return "lower case";
+		else if (side == "lower case")
+			return "upper case";
 		else
 			return " ";
 	}
@@ -106,17 +131,18 @@ public:
 	map<int, int> true_col = { {1,10}, {2,18}, {3,26}, {4,34}, {5,42}, {6,50}, {7,58}, {8,66} };
 	vector<vector<Pieces>> vboard = vector<vector<Pieces>>(9, vector<Pieces>(9));  //virtual board
 
-
+	//put piece on string board
 	void put(Pieces piece) {
 		board[true_row[piece.pst.r]].replace(true_col[piece.pst.c], 6, piece.name);
 	}
 
+	//read a piece from position
 	Pieces& read(Position pst) {
 		return vboard[pst.r][pst.c];
 	}
 
 
-	//initialize board
+	//initialize the board
 	Board() {
 		board = {
 	"\n┌──────┬──────┬──────┬──────┬──────┬──────┬──────┬──────┬──────┬──────┐",
@@ -141,10 +167,11 @@ public:
 	"│      │   a  │   b  │   c  │   d  │   e  │   f  │   g  │   h  │      │",
 	"└──────┴──────┴──────┴──────┴──────┴──────┴──────┴──────┴──────┴──────┘"
 		};
+
 		//put pieces on board
-		//white on down side
 		Position ipst;
-		vector<string> itype = { "rnbqkbnr","pppppppp","        " ,"        ","        ","        " , "pppppppp","rnbqkbnr" };
+		vector<string> itype;
+		itype = { "rnbqkbnr","pppppppp","        " ,"        ","        ","        " , "pppppppp","rnbqkbnr" };
 		for (int i = 1; i <= 8; i++) {
 			ipst.r = i;
 			for (int j = 1; j <= 8; j++) {
@@ -153,7 +180,6 @@ public:
 			}
 		}
 	}
-
 
 	void print() {
 		//synchronize vector board and string board
@@ -168,13 +194,20 @@ public:
 		}
 	}
 
+	Timer t1, t2;
+	map < string, Timer > side_time = { {"upper case", t1}, { "lower case",t2 } };
 
-	//input a piece to move
+	//get a piece to move
 	void input1(string input_side) {
 		string in;
 		Position pst;
-		cout << "Enter the position of a piece you want to move(" << input_side << "side)" << ": ";
+		cout << "Enter the position of a piece you want to move(" << input_side << " side)" << ": ";
+		//record time and get input
+		side_time[input_side].start();
 		getline(cin, in);
+		side_time[input_side].pause();
+
+		//convert input into index
 		for (char i : in) {
 			if (i == 'a' || i == 'b' || i == 'c' || i == 'd' || i == 'e' || i == 'f' || i == 'g' || i == 'h')
 				pst.c = int(i) - 96;
@@ -183,13 +216,14 @@ public:
 			else if (i == '1' || i == '2' || i == '3' || i == '4' || i == '5' || i == '6' || i == '7' || i == '8')
 				pst.r = int(i) - 48;
 		}
+		//examine validity
 		if (!pst.is_empty() && read(pst).type != ' ') {
 			if (read(pst).side == input_side) {
 				//search possible move
 				move_search(pst);
 			}
 			else {
-				cout << "wrong side" << endl;
+				cout << "wrong side, not your move" << endl;
 				input1(input_side);
 				return;
 			}
@@ -218,29 +252,29 @@ public:
 		//logic of move
 		switch (self.type) {
 		case 'p'://pawn
-			if (self.side == "down") {
+			if (self.side == "lower case") {
 				if (read(self.pst.move(1, 0)).type == ' ') {
 					pst_possible.push_back(self.pst.move(1, 0));
-					if (self.moved == false) 
-						pst_possible.push_back(self.pst.move(2, 0));					
+					if (self.moved == false)
+						pst_possible.push_back(self.pst.move(2, 0));
 				}
 				//add diagonal move
-				if (read(self.pst.move(1, 1)).enemy_side() == self.side) 
-					pst_possible.push_back(self.pst.move(1, 1));				
-				if (read(self.pst.move(1, -1)).enemy_side() == self.side) 
-					pst_possible.push_back(self.pst.move(1, -1));			
+				if (read(self.pst.move(1, 1)).enemy_side() == self.side)
+					pst_possible.push_back(self.pst.move(1, 1));
+				if (read(self.pst.move(1, -1)).enemy_side() == self.side)
+					pst_possible.push_back(self.pst.move(1, -1));
 			}
 
-			else if (self.side == "up") {
+			else if (self.side == "upper case") {
 				if (read(self.pst.move(-1, 0)).type == ' ') {
 					pst_possible.push_back(self.pst.move(-1, 0));
-					if (self.moved == false) 
-						pst_possible.push_back(self.pst.move(-2, 0));				
+					if (self.moved == false)
+						pst_possible.push_back(self.pst.move(-2, 0));
 				}
 				//add diagonal move
-				if (read(self.pst.move(-1, 1)).enemy_side() == self.side) 
-					pst_possible.push_back(self.pst.move(-1, 1));		
-				if (read(self.pst.move(-1, -1)).enemy_side() == self.side) 
+				if (read(self.pst.move(-1, 1)).enemy_side() == self.side)
+					pst_possible.push_back(self.pst.move(-1, 1));
+				if (read(self.pst.move(-1, -1)).enemy_side() == self.side)
 					pst_possible.push_back(self.pst.move(-1, -1));
 			}
 			break;
@@ -250,7 +284,7 @@ public:
 			clist = { -1,1,-1,1,-2,-2,2,2 };
 			for (int i = 0; i < 8; i++) {
 				pst1 = self.pst.move(rlist[i], clist[i]);
-				if (!pst1.is_empty()) 
+				if (!pst1.is_empty())
 					pst_possible.push_back(pst1);
 			}
 			break;
@@ -258,65 +292,64 @@ public:
 		case 'b'://bishop
 			for (int i = 1; i < 8; i++) {
 				pst1 = self.pst.move(i, i);
-				if (!pst1.is_empty()) 
+				if (!pst1.is_empty())
 					pst_possible.push_back(pst1);
 				pst1 = self.pst.move(-i, -i);
-				if (!pst1.is_empty()) 
-					pst_possible.push_back(pst1);				
+				if (!pst1.is_empty())
+					pst_possible.push_back(pst1);
 				pst1 = self.pst.move(i, -i);
-				if (!pst1.is_empty()) 
-					pst_possible.push_back(pst1);				
+				if (!pst1.is_empty())
+					pst_possible.push_back(pst1);
 				pst1 = self.pst.move(-i, i);
-				if (!pst1.is_empty()) 
-					pst_possible.push_back(pst1);				
+				if (!pst1.is_empty())
+					pst_possible.push_back(pst1);
 			}
 			break;
 
 		case 'r'://rook
 			for (int i = 1; i < 8; i++) {
 				pst1 = self.pst.move(i, 0);
-				if (!pst1.is_empty()) 
-					pst_possible.push_back(pst1);				
+				if (!pst1.is_empty())
+					pst_possible.push_back(pst1);
 				pst1 = self.pst.move(0, i);
 				if (!pst1.is_empty())
 					pst_possible.push_back(pst1);
 				pst1 = self.pst.move(-i, 0);
-				if (!pst1.is_empty()) 
-					pst_possible.push_back(pst1);			
+				if (!pst1.is_empty())
+					pst_possible.push_back(pst1);
 				pst1 = self.pst.move(0, -i);
-				if (!pst1.is_empty()) 
-					pst_possible.push_back(pst1);		
+				if (!pst1.is_empty())
+					pst_possible.push_back(pst1);
 			}
 			break;
 
 		case 'q'://queen
 			for (int i = 1; i < 8; i++) {
 				pst1 = self.pst.move(i, i);
-				if (pst1.c != 0 && pst1.r != 0) 
+				if (pst1.c != 0 && pst1.r != 0)
 					pst_possible.push_back(pst1);
 				pst1 = self.pst.move(-i, -i);
-				if (pst1.c != 0 && pst1.r != 0) 
-					pst_possible.push_back(pst1);	
+				if (pst1.c != 0 && pst1.r != 0)
+					pst_possible.push_back(pst1);
 				pst1 = self.pst.move(i, -i);
-				if (pst1.c != 0 && pst1.r != 0) 
+				if (pst1.c != 0 && pst1.r != 0)
 					pst_possible.push_back(pst1);
 				pst1 = self.pst.move(-i, i);
-				if (pst1.c != 0 && pst1.r != 0) 
-					pst_possible.push_back(pst1);	
+				if (pst1.c != 0 && pst1.r != 0)
+					pst_possible.push_back(pst1);
 				pst1 = self.pst.move(i, 0);
-				if (pst1.c != 0 && pst1.r != 0) 
-					pst_possible.push_back(pst1);		
+				if (pst1.c != 0 && pst1.r != 0)
+					pst_possible.push_back(pst1);
 				pst1 = self.pst.move(0, i);
-				if (pst1.c != 0 && pst1.r != 0) 
-					pst_possible.push_back(pst1);			
+				if (pst1.c != 0 && pst1.r != 0)
+					pst_possible.push_back(pst1);
 				pst1 = self.pst.move(-i, 0);
-				if (pst1.c != 0 && pst1.r != 0) 
-					pst_possible.push_back(pst1);				
+				if (pst1.c != 0 && pst1.r != 0)
+					pst_possible.push_back(pst1);
 				pst1 = self.pst.move(0, -i);
-				if (pst1.c != 0 && pst1.r != 0) 
-					pst_possible.push_back(pst1);				
+				if (pst1.c != 0 && pst1.r != 0)
+					pst_possible.push_back(pst1);
 			}
-
 			break;
 
 		case 'k'://king
@@ -440,7 +473,7 @@ public:
 		return remove_check(pst_possible, self, mode);
 	}
 
-	
+
 
 	vector<Position> remove_check(vector<Position> pst_possible, Pieces& self, int mode) {
 		Pieces apiece;
@@ -450,9 +483,9 @@ public:
 			Pieces save;
 
 			//remove moves that touch allies
-			if (apiece.side == self.side) 
+			if (apiece.side == self.side)
 				it = pst_possible.erase(it);
-		
+
 			//assume possible moves have been done, then examinate whether the allied king will be captured
 			//if the answer is yes, remove that move
 			else if (mode <= 2) { //mode 1 and 2 accessible 
@@ -461,21 +494,21 @@ public:
 				save = self;
 				self.clear();
 
-				if (is_check(apiece.side)) 
+				if (is_check(apiece.side))
 					it = pst_possible.erase(it);
-				else 
+				else
 					it++;
 
 				self = save;
 				self.swap_pst(apiece);
 				vboard_swap(self.pst, apiece.pst);
 			}
-			else 
+			else
 				it++;
 		}
 		//only mode 1 can access 
 		if (mode <= 1) {
-			if (pst_possible.size() != 0) 
+			if (pst_possible.size() != 0)
 				input2(pst_possible, self.pst);
 			else {
 				cout << "No possible move, please try another piece" << endl;
@@ -491,7 +524,7 @@ public:
 			for (int j = 1; j <= 8; j++)
 				if (vboard[i][j].side != side && vboard[i][j].side != " ")
 					for (Position epst : move_search(vboard[i][j].pst, 3)) //use move_search() mode 3 to avoid infinite recursion
-						if (read(epst).type == 'k' && read(epst).side == side) 
+						if (read(epst).type == 'k' && read(epst).side == side)
 							return true;
 		return false;
 	}
@@ -505,20 +538,32 @@ public:
 		}
 		print();
 
-		cout << "Enter a destination('*' means you can move to that block): ";
+		cout << "Enter a destination. Enter 0 to cancel move('*' means you can move to that block): ";
 		string in;
 		Position pst_destination;
+		//record time and get input
+		side_time[read(pst_self).side].start();
 		getline(cin, in);
+		side_time[read(pst_self).side].pause();
+		
+		//convert input into index
 		for (char i : in) {
-			if (i == 'a' || i == 'b' || i == 'c' || i == 'd' || i == 'e' || i == 'f' || i == 'g' || i == 'h') 
+			if (i == 'a' || i == 'b' || i == 'c' || i == 'd' || i == 'e' || i == 'f' || i == 'g' || i == 'h')
 				pst_destination.c = int(i) - 96;
 			else if (i == 'A' || i == 'B' || i == 'C' || i == 'D' || i == 'E' || i == 'F' || i == 'G' || i == 'H')
 				pst_destination.c = int(i) - 64;
-			else if (i == '1' || i == '2' || i == '3' || i == '4' || i == '5' || i == '6' || i == '7' || i == '8') 
+			else if (i == '1' || i == '2' || i == '3' || i == '4' || i == '5' || i == '6' || i == '7' || i == '8')
 				pst_destination.r = int(i) - 48;
+			else if (i == '0') {
+				for (Position i : pst_possible)
+					read(i).asterisk("remove");
+				print();
+				input1(read(pst_self).side);
+				return;
+			}
 		}
 		//remove asterisk
-		for (Position i : pst_possible) 
+		for (Position i : pst_possible)
 			read(i).asterisk("remove");
 
 		//move the piece if destination is legal
@@ -541,8 +586,9 @@ public:
 								cout << "CHECK" << endl;
 								//when king has no legal move
 								if (move_search(vboard[i][j].pst, 2).size() == 0) {
-									cout << "GAME OVER" << endl;
-									cout << target.side << " win";
+									cout << "GAME OVER\n" << target.side << " win" << endl;
+									cout << target.side << " used " << side_time[target.side].get() << " seconds" << endl;
+									cout << target.enemy_side() << " used " << side_time[target.enemy_side()].get() << " seconds" << endl;
 									exit(0);
 								}
 								return;
