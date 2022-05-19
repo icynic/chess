@@ -6,5 +6,5 @@ a command line chess game
 - [x] show valid move
 - [x] move in turn 
 - [x] check state and game over determination
-- [ ] timer
-- [ ] 
+- [x] timer
+- [x] comment
