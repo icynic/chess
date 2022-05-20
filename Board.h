@@ -17,7 +17,7 @@ public:
 	}
 	//pause the timer and record the time
 	void pause() {
-		sum += difftime(time(0),start_time);
+		sum += difftime(time(0), start_time);
 	}
 	//get total time
 	long get() {
@@ -196,7 +196,7 @@ public:
 		}
 	}
 
-	Timer t1, t2,t3;
+	Timer t1, t2, t3;
 	map < string, Timer > side_time = { {"upper case", t1}, { "lower case",t2 } };
 
 	//get a piece to move
@@ -361,6 +361,24 @@ public:
 				pst1 = self.pst.move(rlist[i], clist[i]);
 				if (!pst1.is_empty())
 					pst_possible.push_back(pst1);
+			}
+			//castling
+			if (self.moved == false) {
+				for (int i = 1; i < 5; i++) {
+					if (read(self.pst.move(0, i)).type == ' ')
+						continue;
+					else if (read(self.pst.move(0, i)).type == 'r' && read(self.pst.move(0, i)).moved == false)
+						pst_possible.push_back(self.pst.move(0, 2));
+					else
+						break;
+				}
+				for (int i = 1; i < 5; i++) {
+					if (read(self.pst.move(0, -i)).type != ' ')
+						break;
+					else if (read(self.pst.move(0, i)).type == 'r' && read(self.pst.move(0, i)).moved == false)
+						pst_possible.push_back(self.pst.move(0, -2));
+					else break;
+				}
 			}
 			break;
 		}
@@ -547,7 +565,7 @@ public:
 		side_time[read(pst_self).side].start();
 		getline(cin, in);
 		side_time[read(pst_self).side].pause();
-		
+
 		//convert input into index
 		for (char i : in) {
 			if (i == 'a' || i == 'b' || i == 'c' || i == 'd' || i == 'e' || i == 'f' || i == 'g' || i == 'h')
@@ -574,10 +592,25 @@ public:
 				Pieces& self = read(pst_self);
 				Pieces& target = read(pst_destination);
 				self.moved = true;
-
+				
+				//swap and clear
 				vboard_swap(self.pst, target.pst);
 				self.swap_pst(target);
 				self.clear();
+
+				//castling
+				Pieces& cast = read(target.pst.move(0, -1)), & rook = read(Position(self.pst.r, 8));
+				if (target.type == 'k' && self.pst.move(0, 2).c == target.pst.c) {
+					vboard_swap(cast.pst, rook.pst);
+					rook.swap_pst(cast);
+					rook.clear();
+				}
+				Pieces& cast2 = read(target.pst.move(0, 1)), & rook2 = read(Position(self.pst.r, 1));
+				if (target.type == 'k' && self.pst.move(0, -2).c == target.pst.c) {
+					vboard_swap(cast2.pst, rook2.pst);
+					rook2.swap_pst(cast2);
+					rook2.clear();
+				}
 				print();
 
 				//examine game state
@@ -586,9 +619,9 @@ public:
 						for (int j = 1; j <= 8; j++)
 							if (vboard[i][j].type == 'k') {
 								cout << "CHECK" << endl;
-								//when king has no legal move
+								//when king has no legal move, game over
 								if (move_search(vboard[i][j].pst, 2).size() == 0) {
-									cout << "GAME OVER\n" << target.side << " win" << endl;
+									cout << "GAME OVER\n" << target.side << " WIN" << endl;
 									cout << target.side << " used " << side_time[target.side].get() << " seconds" << endl;
 									cout << target.enemy_side() << " used " << side_time[target.enemy_side()].get() << " seconds" << endl;
 									t3.pause();
@@ -598,6 +631,13 @@ public:
 								return;
 							}
 				}
+				//promotion of pawn
+				if (target.type == 'p' && (target.pst.r == 1 || target.pst.r == 8)) {
+					cout << "PROMOTION \nEnter 'n', 'b', 'r' or 'q' to change pawn into knight, bishop, rook or queen: ";
+					target.set(target.pst, cin.get());
+					print();
+				}
+
 				return;
 			}
 		}
@@ -613,6 +653,5 @@ public:
 		vboard[p2.r][p2.c] = temp;
 		return temp;
 	}
-
 };
 
