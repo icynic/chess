@@ -8,3 +8,5 @@ a command line chess game
 - [x] check state and game over determination
 - [x] timer
 - [x] comment
+- [x] promotion
+- [x] castling
