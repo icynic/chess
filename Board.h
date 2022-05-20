@@ -9,7 +9,6 @@ using namespace std;
 class Timer {
 	time_t start_time = 0;
 	time_t sum = 0;
-	bool is_started = false;
 public:
 	//start the timer
 	void start() {
@@ -20,7 +19,7 @@ public:
 		sum += difftime(time(0), start_time);
 	}
 	//get total time
-	long get() {
+	time_t get() {
 		return sum;
 	}
 	Timer() = default;
@@ -592,7 +591,7 @@ public:
 				Pieces& self = read(pst_self);
 				Pieces& target = read(pst_destination);
 				self.moved = true;
-				
+
 				//swap and clear
 				vboard_swap(self.pst, target.pst);
 				self.swap_pst(target);
